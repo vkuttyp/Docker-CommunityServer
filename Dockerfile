@@ -4,7 +4,7 @@ MAINTAINER Ascensio System SIA <support@onlyoffice.com>
 ARG RELEASE_DATE="2016-06-21"
 ARG RELEASE_DATE_SIGN=""
 ARG VERSION="8.9.0.190"
-ARG SOURCE_REPO_URL="deb http://static.teamlab.com.s3.amazonaws.com/repo/debian squeeze main"
+ARG SOURCE_REPO_URL="deb http://static.teamlab.com.s3.amazonaws.com/testing/debian-release squeeze main"
 ARG DEBIAN_FRONTEND=noninteractive 
 
 LABEL onlyoffice.community.release-date="${RELEASE_DATE}" \
@@ -40,7 +40,7 @@ RUN echo "${SOURCE_REPO_URL}" >> /etc/apt/sources.list && \
     apt-get -y update && \
     apt-get install --force-yes -yq mono-complete ca-certificates-mono && \
     echo "#!/bin/sh\nexit 0" > /usr/sbin/policy-rc.d && \
-    apt-get install --force-yes -yq dumb-init certbot sphinxsearch onlyoffice-communityserver htop nano dnsutils && \
+    apt-get install --force-yes -yq dumb-init supervisor certbot sphinxsearch onlyoffice-communityserver htop nano dnsutils && \
     rm -rf /var/lib/apt/lists/*
 
 
@@ -54,5 +54,6 @@ VOLUME ["/var/www/onlyoffice/Data"]
 VOLUME ["/var/lib/mysql"]
 
 EXPOSE 80 443 5222 3306 9865 9888 9866 9871 9882 5280
+
 
 CMD ["/app/onlyoffice/run-community-server.sh"];

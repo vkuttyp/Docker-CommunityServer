@@ -22,8 +22,9 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 NGINX_CONF_DIR="/etc/nginx/sites-enabled"
 NGINX_WORKER_PROCESSES=${NGINX_WORKER_PROCESSES:-$(grep processor /proc/cpuinfo | wc -l)};
 NGINX_WORKER_CONNECTIONS=${NGINX_WORKER_CONNECTIONS:-$(ulimit -n)};
-
 SERVICE_SSO_AUTH_HOST_ADDR=${SERVICE_SSO_AUTH_HOST_ADDR:-${CONTROL_PANEL_PORT_80_TCP_ADDR}};
+SUPERVISOR_ENABLED=${SUPERVISOR_ENABLED:-true};
+SUPERVISOR_CONF_PATH="/etc/supervisor/conf.d";
 
 if [ ! -d "$NGINX_CONF_DIR" ]; then
    mkdir -p $NGINX_CONF_DIR;
@@ -76,6 +77,10 @@ MYSQL_SERVER_DB_NAME=${MYSQL_SERVER_DB_NAME:-"onlyoffice"}
 MYSQL_SERVER_USER=${MYSQL_SERVER_USER:-"root"}
 MYSQL_SERVER_PASS=${MYSQL_SERVER_PASS:-${MYSQL_SERVER_ROOT_PASSWORD}}
 MYSQL_SERVER_EXTERNAL=${MYSQL_SERVER_EXTERNAL:-false};
+
+if [ "${SUPERVISOR_ENABLED}" == "true" ]; then
+	cp -Rf ${SYSCONF_TEMPLATES_DIR}/supervisor/conf.d/*.conf ${SUPERVISOR_CONF_PATH}
+fi
 
 mkdir -p "${SSL_CERTIFICATES_DIR}/.well-known/acme-challenge"
 
@@ -720,10 +725,13 @@ if [ "${ONLYOFFICE_MODE}" == "SERVICES" ]; then
 
 	rm -f "${ONLYOFFICE_GOD_DIR}"/nginx.god;
 	rm -f "${ONLYOFFICE_GOD_DIR}"/monoserveApiSystem.god;
+	rm -f "${SUPERVISOR_CONF_PATH}"/nginx.conf;
 
 	service monoserveApiSystem stop
 
 	rm -f /etc/init.d/monoserveApiSystem
+	rm -f "${SUPERVISOR_CONF_PATH}"/monoserveApiSystem.conf;
+
 
 	for serverID in $(seq 1 ${ONLYOFFICE_MONOSERVE_COUNT});
 	do
@@ -738,6 +746,7 @@ if [ "${ONLYOFFICE_MODE}" == "SERVICES" ]; then
         service monoserve$index stop
 
 	rm -f /etc/init.d/monoserve$index
+	rm -f "${ONLYOFFICE_GOD_DIR}"/monoserve$index.conf;
 
 	done
 
@@ -763,13 +772,23 @@ else
 		if [ $index == 1 ]; then
 			index="";
 		fi
+	
+		if [ "$SUPERVISOR_ENABLED" == "false" ]; then
 
 		service monoserve$index restart
 
                 (ping_onlyoffice "http://localhost/warmup${index}/auth.aspx") &
+
+		fi
 	done
 
+	if [ "$SUPERVISOR_ENABLED" == "false" ]; then
+
+
 	service monoserveApiSystem restart
+	
+	fi
+
 fi
 
 if [ "${ONLYOFFICE_SERVICES_EXTERNAL}" == "true" ]; then
@@ -796,10 +815,21 @@ if [ "${ONLYOFFICE_SERVICES_EXTERNAL}" == "true" ]; then
 	rm -f /etc/init.d/onlyofficeSignalR
 	rm -f /etc/init.d/onlyofficeAutoreply
 
+
+	rm -f ${SUPERVISOR_CONF_PATH}/onlyofficeFeed.conf
+	rm -f ${SUPERVISOR_CONF_PATH}/onlyofficeIndex.conf
+	rm -f ${SUPERVISOR_CONF_PATH}/onlyofficeJabber.conf
+	rm -f ${SUPERVISOR_CONF_PATH}/onlyofficeMailAggregator.conf
+	rm -f ${SUPERVISOR_CONF_PATH}/onlyofficeMailWatchdog.conf
+	rm -f ${SUPERVISOR_CONF_PATH}/onlyofficeNotify.conf
+	rm -f ${SUPERVISOR_CONF_PATH}/onlyofficeBackup.conf
+	rm -f ${SUPERVISOR_CONF_PATH}/onlyofficeSignalR.conf
+	rm -f ${SUPERVISOR_CONF_PATH}/onlyofficeAutoreply.conf
+
 	sed '/onlyoffice/d' -i ${ONLYOFFICE_CRON_PATH}
 
-else
 
+elif [ "$SUPERVISOR_ENABLED" == "false" ]; then
 	service onlyofficeFeed restart
 	service onlyofficeIndex restart
 	service onlyofficeJabber restart
@@ -838,8 +868,30 @@ if [ ! -f ${ONLYOFFICE_CRON_DIR}/letsencrypt ]; then
   cp ${SYSCONF_TEMPLATES_DIR}/cron/letsencrypt  ${ONLYOFFICE_CRON_DIR}/letsencrypt;
 fi
 
+if [ "$SUPERVISOR_ENABLED" == "false" ]; then
+
 cron
 
+fi
+
 if [ "${DOCKER_ENABLED}" == "true" ]; then
-   exec tail -f /dev/null
+	service god stop
+	service monoserve stop
+	service nginx stop
+	service monoserveApiSystem stop
+	service mysql stop
+
+	
+	service onlyofficeFeed stop
+	service onlyofficeIndex stop
+	service onlyofficeJabber stop
+	service onlyofficeMailAggregator stop
+	service onlyofficeMailWatchdog stop
+	service onlyofficeNotify stop
+	service onlyofficeBackup stop
+	service onlyofficeSignalR stop
+	service onlyofficeAutoreply stop
+	
+	
+	exec /usr/bin/supervisord
 fi
