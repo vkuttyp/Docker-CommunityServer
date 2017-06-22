@@ -40,9 +40,9 @@ RUN echo "${SOURCE_REPO_URL}" >> /etc/apt/sources.list && \
     apt-get -y update && \
     apt-get install --force-yes -yq mono-complete ca-certificates-mono && \
     echo "#!/bin/sh\nexit 0" > /usr/sbin/policy-rc.d && \
-    apt-get install --force-yes -yq dumb-init supervisor certbot sphinxsearch onlyoffice-communityserver htop nano dnsutils && \
+    apt-get install --force-yes -yq dumb-init certbot sphinxsearch onlyoffice-communityserver htop nano dnsutils python-pip && \
+    pip install supervisor && \
     rm -rf /var/lib/apt/lists/*
-
 
 ADD config /app/onlyoffice/config/
 ADD assets /app/onlyoffice/assets/

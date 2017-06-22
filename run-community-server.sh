@@ -24,7 +24,7 @@ NGINX_WORKER_PROCESSES=${NGINX_WORKER_PROCESSES:-$(grep processor /proc/cpuinfo 
 NGINX_WORKER_CONNECTIONS=${NGINX_WORKER_CONNECTIONS:-$(ulimit -n)};
 SERVICE_SSO_AUTH_HOST_ADDR=${SERVICE_SSO_AUTH_HOST_ADDR:-${CONTROL_PANEL_PORT_80_TCP_ADDR}};
 SUPERVISOR_ENABLED=${SUPERVISOR_ENABLED:-true};
-SUPERVISOR_CONF_PATH="/etc/supervisor/conf.d";
+SUPERVISOR_CONF_PATH="/etc/supervisor";
 
 if [ ! -d "$NGINX_CONF_DIR" ]; then
    mkdir -p $NGINX_CONF_DIR;
@@ -79,7 +79,22 @@ MYSQL_SERVER_PASS=${MYSQL_SERVER_PASS:-${MYSQL_SERVER_ROOT_PASSWORD}}
 MYSQL_SERVER_EXTERNAL=${MYSQL_SERVER_EXTERNAL:-false};
 
 if [ "${SUPERVISOR_ENABLED}" == "true" ]; then
-	cp -Rf ${SYSCONF_TEMPLATES_DIR}/supervisor/conf.d/*.conf ${SUPERVISOR_CONF_PATH}
+        if [ ! -d ${SUPERVISOR_CONF_PATH} ]; then
+                mkdir -p ${SUPERVISOR_CONF_PATH}
+                mkdir -p ${SUPERVISOR_CONF_PATH}/conf.d
+
+        fi
+
+        if [ ! -d /var/log/supervisor/ ]; then
+                mkdir -p /var/log/supervisor/;
+        fi
+
+        cp -Rf ${SYSCONF_TEMPLATES_DIR}/supervisor/conf.d/*.conf ${SUPERVISOR_CONF_PATH}/conf.d
+        cp -f ${SYSCONF_TEMPLATES_DIR}/supervisor/supervisord.conf ${SUPERVISOR_CONF_PATH}
+
+        ln -sf /usr/local/bin/supervisorctl /usr/bin/supervisorctl
+        ln -sf /usr/local/bin/supervisord /usr/bin/supervisord
+	ln -sf /usr/local/bin/pidproxy /usr/bin/pidproxy
 fi
 
 mkdir -p "${SSL_CERTIFICATES_DIR}/.well-known/acme-challenge"
