@@ -38,7 +38,7 @@ services:
     networks:
      - onlyoffice
     ports:
-     - '80:80'
+     - '8282:80'
      - '443:443'
      - '5222:5222'
     stdin_open: true
@@ -58,7 +58,7 @@ services:
     networks:
       - onlyoffice
     expose:
-      - '80'
+      - '8282'
       - '443'
     volumes:
        - document_data:/var/www/onlyoffice/Data
@@ -70,7 +70,7 @@ services:
     image: onlyoffice/mailserver:latest
     depends_on:
      - onlyoffice-mysql-server
-    hostname: ${MAIL_SERVER_HOSTNAME}
+    hostname: ${mail.shada.online}
     environment:
        - MYSQL_SERVER=onlyoffice-mysql-server
        - MYSQL_SERVER_PORT=3306
